@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: stats-postgres
+    environment:
+      POSTGRES_DB: statsdb
+      POSTGRES_USER: statsuser
+      POSTGRES_PASSWORD: statspassword
+    ports:
+      - "11111:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

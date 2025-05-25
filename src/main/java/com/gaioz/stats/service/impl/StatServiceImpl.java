@@ -22,10 +22,17 @@ public class StatServiceImpl implements StatService {
         this.statRepository = statRepository;
     }
 
+    public void initStatIfNotExists() {
+        if(statRepository.count() != 0) return;
+        Stat stat = new Stat();
+        stat.setStatValue("0");
+        statRepository.save(stat);
+    }
+
     @Override
     public GetStatDto getStat() {
+        initStatIfNotExists();
         List<Stat> all = statRepository.findAll();
-        if (all.isEmpty()) throw new IllegalStateException("One stat should exist");
         return new GetStatDto(all.get(0));
     }
 

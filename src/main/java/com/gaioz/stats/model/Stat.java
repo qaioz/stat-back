@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "stats")
@@ -21,14 +20,8 @@ public class Stat {
     @Column(name = "stat_value", nullable = false)
     private String statValue;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    @Version
+    private Long version;
 
     public static Stat fromDto(SetStatDto dto) {
         Stat stat = new Stat();

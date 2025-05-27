@@ -6,13 +6,13 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
-
 @Entity
 @Table(name = "stats")
 @Getter
 @Setter
 @RequiredArgsConstructor
 public class Stat {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
@@ -28,4 +28,6 @@ public class Stat {
         stat.setStatValue(dto.getValue());
         return stat;
     }
+
+
 }

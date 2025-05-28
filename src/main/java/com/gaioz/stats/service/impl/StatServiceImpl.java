@@ -1,8 +1,10 @@
 package com.gaioz.stats.service.impl;
 
+import com.gaioz.stats.config.StatProperties;
 import com.gaioz.stats.dto.FetchedFrom;
 import com.gaioz.stats.dto.GetStatResponse;
 import com.gaioz.stats.dto.SetStatRequest;
+import com.gaioz.stats.exception.GetStatTimeoutException;
 import com.gaioz.stats.exception.StatNotInitializedException;
 import com.gaioz.stats.model.Stat;
 import com.gaioz.stats.repository.StatRepository;
@@ -14,30 +16,30 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.Optional;
 
 @Service
 @Slf4j
 public class StatServiceImpl implements StatService {
 
-    private static final String STAT_CACHE_KEY = "stat";
-    private static final Duration CACHE_TTL = Duration.ofSeconds(30);
-    private static final Duration LOCK_TTL = Duration.ofSeconds(60);
 
     private final StatRepository statRepository;
     private final RedisService redisService;
+    private final StatProperties statProperties;
 
     @Autowired
-    public StatServiceImpl(StatRepository statRepository, RedisService redisService) {
+    public StatServiceImpl(StatRepository statRepository,
+                           RedisService redisService,
+                           StatProperties statProperties) {
         this.statRepository = statRepository;
         this.redisService = redisService;
+        this.statProperties = statProperties;
     }
 
     private void initStatIfNotExists() {
         if (statRepository.count() != 0) return;
         Stat stat = new Stat();
-        stat.setStatValue("0");
+        stat.setStatValue(statProperties.getInitialValue());
         statRepository.save(stat);
     }
 
@@ -57,30 +59,44 @@ public class StatServiceImpl implements StatService {
      */
     @Override
     public GetStatResponse getStat() {
-        Object cached = redisService.get(STAT_CACHE_KEY);
+        //retry every REETRY_INTERVAL milliseconds for up to RETRY_TTL seconds
+        // every try: if the cache is available, return it,
+        // else try to acquire a lock and get the stat from the database
+        int retries = (int) (statProperties.getRetryTtlSeconds() * 1000 / statProperties.getRetryIntervalMillis());
+        for (int i = 0; i < retries; i++) {
+            Object cached = redisService.get(statProperties.getCacheKey());
+            if (cached != null) {
+                return getStatResponseFromCachedObjectElseThrowError(cached);
+            }
 
-        if (cached != null) {
-            return getStatResponseFromCachedObjectElseThrowError(cached);
+            boolean lockAcquired = redisService.acquireLock(statProperties.getCacheKey(), statProperties.getLockTtl());
+            if (lockAcquired) {
+                try {
+                    Optional<Stat> optionalStat = statRepository.findAny();
+                    Stat stat = optionalStat.orElseThrow(() -> new StatNotInitializedException("Stat not initialized in the database."));
+                    GetStatResponse freshDto = GetStatResponse.from(stat, FetchedFrom.DATABASE, statProperties.getCacheTtlSeconds());
+                    redisService.set(statProperties.getCacheKey(), freshDto, statProperties.getCacheTtl());
+                    return freshDto;
+                } finally {
+                    redisService.releaseLock(statProperties.getCacheKey());
+                }
+            }
+
+            try {
+                Thread.sleep(statProperties.getRetryIntervalMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Thread interrupted while waiting for lock", e);
+            }
         }
-
-        return redisService.tryWithLockAndWait(STAT_CACHE_KEY, LOCK_TTL, 100, 300, () -> {
-            Optional<Stat> optionalStat = statRepository.findAny();
-            Stat stat = optionalStat.orElseThrow(() -> new StatNotInitializedException("Stat not initialized in the database."));
-            GetStatResponse freshDto = GetStatResponse.from(stat, FetchedFrom.DATABASE, CACHE_TTL.getSeconds());
-            redisService.set(STAT_CACHE_KEY, freshDto, CACHE_TTL);
-            return freshDto;
-        }, () -> {
-            Object retryCached = redisService.get(STAT_CACHE_KEY);
-            if (retryCached == null) return null;
-            return getStatResponseFromCachedObjectElseThrowError(retryCached);
-        });
+        throw new GetStatTimeoutException("Failed to get stat after " + statProperties.getRetryTtlSeconds() + " seconds of retries.");
     }
 
     /**
      * If stat does not exist, it will be created with the value from SetStatRequest.
      * If it exists, it will be updated with the value from SetStatRequest.
      * After setting the stat, it will be cached in Redis.
-     *
+     * <p>
      * Since we are using optimistic locking with @Version, StaleObjectStateException
      * may occur if multiple threads try to update the stat at the same time.
      */
@@ -98,13 +114,13 @@ public class StatServiceImpl implements StatService {
             stat.setStatValue(setStatRequest.getValue());
             statRepository.save(stat);
         }
-        redisService.set(STAT_CACHE_KEY, GetStatResponse.from(stat), CACHE_TTL);
+        redisService.set(statProperties.getCacheKey(), GetStatResponse.from(stat), statProperties.getCacheTtl());
     }
 
     private GetStatResponse getStatResponseFromCachedObjectElseThrowError(Object cachedNonNull) {
         if (cachedNonNull instanceof GetStatResponse dto) {
             dto.setFetchedFrom(FetchedFrom.CACHE);
-            Long ttl = redisService.getTtl(STAT_CACHE_KEY);
+            Long ttl = redisService.getTtl(statProperties.getCacheKey());
             dto.setTtlSeconds(ttl == null ? 0 : ttl);
             return dto;
         } else {

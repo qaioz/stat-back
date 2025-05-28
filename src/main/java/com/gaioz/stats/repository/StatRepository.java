@@ -12,7 +12,7 @@ public interface StatRepository extends JpaRepository<Stat, Long> {
     @Query("SELECT s FROM Stat s")
     Optional<Stat> findAnyNoDelay();
 
-    @Query(value = "SELECT * FROM stats WHERE pg_sleep(10) IS NOT NULL LIMIT 1", nativeQuery = true)
+    @Query(value = "SELECT * FROM stats WHERE pg_sleep(3) IS NOT NULL LIMIT 1", nativeQuery = true)
     Optional<Stat> findAnyDelayed();
 
     default Optional<Stat> findAny() {

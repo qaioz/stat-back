@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController("api/stats")
@@ -25,7 +26,7 @@ public class StatController {
     }
 
     @PutMapping("/set")
-    public ResponseEntity<Void> setStat(SetStatRequest setStatRequest) {
+    public ResponseEntity<Void> setStat(@RequestBody SetStatRequest setStatRequest) {
         statService.setStat(setStatRequest);
         return ResponseEntity.noContent().build();
     }

@@ -6,6 +6,6 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SetStatDto {
+public class SetStatRequest {
     private String value;
 }

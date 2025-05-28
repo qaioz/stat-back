@@ -1,6 +1,6 @@
 package com.gaioz.stats.model;
 
-import com.gaioz.stats.dto.SetStatDto;
+import com.gaioz.stats.dto.SetStatRequest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class Stat {
     @Version
     private Long version;
 
-    public static Stat fromDto(SetStatDto dto) {
+    public static Stat fromDto(SetStatRequest dto) {
         Stat stat = new Stat();
         stat.setStatValue(dto.getValue());
         return stat;

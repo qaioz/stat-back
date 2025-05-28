@@ -1,8 +1,8 @@
 package com.gaioz.stats.controller;
 
 
-import com.gaioz.stats.dto.GetStatDto;
-import com.gaioz.stats.dto.SetStatDto;
+import com.gaioz.stats.dto.GetStatResponse;
+import com.gaioz.stats.dto.SetStatRequest;
 import com.gaioz.stats.service.StatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +20,13 @@ public class StatController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<GetStatDto> getStat() {
+    public ResponseEntity<GetStatResponse> getStat() {
         return ResponseEntity.ok(statService.getStat());
     }
 
     @PutMapping("/set")
-    public ResponseEntity<Boolean> setStat(SetStatDto setStatDto) {
-        boolean stateChanged = statService.setStat(setStatDto);
-        return stateChanged ? ResponseEntity.ok(Boolean.TRUE) : ResponseEntity.ok(Boolean.FALSE);
+    public ResponseEntity<Void> setStat(SetStatRequest setStatRequest) {
+        statService.setStat(setStatRequest);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -36,6 +36,16 @@ public class RedisService {
         return Boolean.TRUE.equals(success);
     }
 
+    /**
+     * @param key
+     * @param lockTtl
+     * @param maxRetries
+     * @param delayMillis
+     * @param task
+     * @param fallbackIfCacheAppears
+     * @return
+     * @param <T>
+     */
     public <T> T tryWithLockAndWait(
             String key,
             Duration lockTtl,

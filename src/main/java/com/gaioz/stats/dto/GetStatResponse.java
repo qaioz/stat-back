@@ -8,7 +8,7 @@ import java.io.Serializable;
 
 @Getter
 @Setter
-public class GetStatDto implements Serializable {
+public class GetStatResponse implements Serializable {
     private String statValue;
     private Long version;
 
@@ -20,17 +20,17 @@ public class GetStatDto implements Serializable {
     @Transient
     private Long ttlSeconds;
 
-    private GetStatDto(Stat stat) {
+    private GetStatResponse(Stat stat) {
         this.statValue = stat.getStatValue();
         this.version = stat.getVersion();
     }
 
-    public static GetStatDto from(Stat stat) {
-        return new GetStatDto(stat);
+    public static GetStatResponse from(Stat stat) {
+        return new GetStatResponse(stat);
     }
 
-    public static GetStatDto from(Stat stat, FetchedFrom fetchedFrom, Long ttlSeconds) {
-        GetStatDto dto = new GetStatDto(stat);
+    public static GetStatResponse from(Stat stat, FetchedFrom fetchedFrom, Long ttlSeconds) {
+        GetStatResponse dto = new GetStatResponse(stat);
         dto.setFetchedFrom(fetchedFrom);
         dto.setTtlSeconds(ttlSeconds);
         return dto;

@@ -1,9 +1,9 @@
 package com.gaioz.stats.service;
 
-import com.gaioz.stats.dto.GetStatDto;
-import com.gaioz.stats.dto.SetStatDto;
+import com.gaioz.stats.dto.GetStatResponse;
+import com.gaioz.stats.dto.SetStatRequest;
 
 public interface StatService {
-    GetStatDto getStat();
-    boolean setStat(SetStatDto setStatDto);
+    GetStatResponse getStat();
+    void setStat(SetStatRequest setStatRequest);
 }

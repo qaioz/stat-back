@@ -30,4 +30,9 @@ public class StatController {
         statService.setStat(setStatRequest);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/")
+    public String redirectToSwagger() {
+        return "redirect:/swagger-ui/index.html";
+    }
 }
